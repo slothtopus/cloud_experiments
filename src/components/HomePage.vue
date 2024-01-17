@@ -7,6 +7,12 @@
     <router-link to="/web-gl-cube">WebGL Cube</router-link>
     <router-link to="/web-gl-rotating-cube">WebGL Rotating Cube</router-link>
     <router-link to="/web-gl-rotating-cube-filled">WebGL Rotating Cube Filled</router-link>
+    <router-link to="/ray-marched-sphere">Ray Marched Sphere</router-link>
+    <router-link to="/algocloud">Algo Cloud</router-link>
+    <router-link to="/ray-marched-cloud">Ray Marched Cloud</router-link>
+    <router-link to="/sidescrolling">Side Scrolling fail :(</router-link>
+    <router-link to="/sidescrolling2">Side Scrolling Frag fail :(</router-link>
+    <router-link to="/sidescrolling3">Side Scrolling Component</router-link>
   </div>
 </template>
 
