@@ -13,6 +13,7 @@
     <router-link to="/sidescrolling">Side Scrolling fail :(</router-link>
     <router-link to="/sidescrolling2">Side Scrolling Frag fail :(</router-link>
     <router-link to="/sidescrolling3">Side Scrolling Component</router-link>
+    <router-link to="/sidescrolling4">Side Scrolling Component v2</router-link>
   </div>
 </template>
 

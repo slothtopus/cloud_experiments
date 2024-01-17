@@ -11,6 +11,7 @@ import RayMarchedCloud from '@/components/RayMarchedCloud/RayMarchedCloud.vue'
 import SideScrolling from '@/components/SideScrolling/SideScrolling.vue'
 import SideScrollingFrag from '@/components/SideScrollingFrag/SideScrollingFrag.vue'
 import SideScrollingComponent from '@/components/SideScrollingComponent/SideScrollingComponent.vue'
+import SideScrollingComponent2 from '@/components/SideScrollingComponent2/SideScrollingComponent2.vue'
 
 import HomePage from '@/components/HomePage.vue'
 
@@ -30,7 +31,8 @@ const routes = [
   { path: '/ray-marched-cloud', component: RayMarchedCloud },
   { path: '/sidescrolling', component: SideScrolling },
   { path: '/sidescrolling2', component: SideScrollingFrag },
-  { path: '/sidescrolling3', component: SideScrollingComponent }
+  { path: '/sidescrolling3', component: SideScrollingComponent },
+  { path: '/sidescrolling4', component: SideScrollingComponent2 }
 ]
 
 export const router = createRouter({
