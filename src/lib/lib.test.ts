@@ -84,7 +84,7 @@ test('perspective project points 2', () => {
 })
 
 test('perspective project points 3', () => {
-  const p1: Point4 = [-1, 0, -1, 1]
-  const pm = createFrustrumProjectionMatrix(-1, 1, -1, 1, 1, 4.2)
-  console.log(multiplyMatrix4Point4(pm, p1))
+  const p1: Point4 = [0, 0, -3, 1]
+  const pm = createFrustrumProjectionMatrix(-1, 1, -1, 1, 0.9999999, 3)
+  console.log(normalisePoint4(multiplyMatrix4Point4(pm, p1)))
 })
