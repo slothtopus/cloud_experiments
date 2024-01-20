@@ -2,13 +2,34 @@
 import { onMounted, ref, onUnmounted } from 'vue'
 
 import { resizeCanvasToDisplaySize } from 'twgl.js'
+
+import { createFrustrumProjectionMatrix, matrixToColumnMajorArray } from '../../lib/lib'
 import { buildCloudProgram, drawClouds } from './clouds'
 
 const fps = ref(0)
 const quality = ref(50)
+const scrollPos = ref(0)
+const normalisedMouseX = ref(0)
+const normalisedMouseY = ref(0)
+
 let animationId = 0
 
+const handleMouseMove = (event: MouseEvent) => {
+  const x = event.clientX
+  const y = event.clientY
+  normalisedMouseX.value = (x / window.innerWidth) * 2 - 1
+  normalisedMouseY.value = -((y / window.innerHeight) * 2 - 1)
+}
+
+const handleScroll = () => {
+  scrollPos.value =
+    window.scrollY / (document.documentElement.scrollHeight - document.documentElement.clientHeight)
+}
 onMounted(() => {
+  window.addEventListener('mousemove', handleMouseMove)
+  window.addEventListener('scroll', handleScroll)
+  handleScroll()
+
   const canvas = document.getElementById('canvas') as HTMLCanvasElement
   if (canvas === null) return
 
@@ -20,15 +41,6 @@ onMounted(() => {
   const cloudProgramParams = buildCloudProgram(gl)
 
   // ----------------------- ANIMATE -----------------------
-
-  let normalisedMouseX = 0
-  let normalisedMouseY = 0
-  window.addEventListener('mousemove', (event: MouseEvent) => {
-    const x = event.clientX
-    const y = event.clientY
-    normalisedMouseX = (x / window.innerWidth) * 2 - 1
-    normalisedMouseY = -((y / window.innerHeight) * 2 - 1)
-  })
 
   let frames = 0
   let framesStart = 0
@@ -43,10 +55,11 @@ onMounted(() => {
       gl,
       {
         t,
-        normalisedMouseX,
-        normalisedMouseY,
+        normalisedMouseX: normalisedMouseX.value,
+        normalisedMouseY: normalisedMouseY.value,
         canvasWidth: canvas.width,
-        canvasHeight: canvas.height
+        canvasHeight: canvas.height,
+        scrollPct: scrollPos.value
       },
       cloudProgramParams
     )
@@ -65,54 +78,66 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.cancelAnimationFrame(animationId)
+  window.removeEventListener('mousemove', handleMouseMove)
+  window.removeEventListener('scroll', handleScroll)
 })
 </script>
 
 <template>
   <canvas id="canvas"></canvas>
+  <div class="content">
+    <div class="textbox top">
+      <h1>start</h1>
+    </div>
+    <div class="textbox bottom">
+      <h1>end</h1>
+    </div>
+  </div>
   <div class="controls">
     <p>fps: {{ fps.toFixed(2) }}</p>
     <input type="range" min="1" max="200" v-model="quality" />
     <p>Quality: {{ (quality / 100).toFixed(2) }}</p>
-  </div>
-  <div class="title">
-    <h1>clouds</h1>
+    <p>Scroll: {{ (scrollPos * 100).toFixed(2) }}%</p>
+    <p>Mouse: {{ normalisedMouseX.toFixed(2) }}, {{ normalisedMouseY.toFixed(2) }}</p>
   </div>
 </template>
 
 <style scoped>
 canvas {
+  position: fixed;
+  inset: 0px;
   width: 100%;
   height: 100%;
   /*image-rendering: pixelated;
   image-rendering: crisp-edges;*/
 }
 
-.controls {
+.content {
   position: absolute;
-  top: 0.25rem;
-  right: 0.25rem;
-  color: white;
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 10px;
+  top: 0px;
+  width: 100%;
+  height: 200%;
 }
 
-.controls p {
-  margin: 0;
-  text-align: center;
-}
-
-.title {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  /*border: 1px solid white;*/
-
+.textbox {
   border-radius: 1rem;
   padding: 2rem 3rem;
   backdrop-filter: blur(10px);
   background-color: rgba(0, 0, 0, 0.2);
+}
+
+.top {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.bottom {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 h1 {
@@ -120,5 +145,20 @@ h1 {
   margin: 0;
   color: white;
   font-size: 5rem;
+}
+
+.controls {
+  position: fixed;
+  top: 0.25rem;
+  right: 0.25rem;
+  color: white;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10px;
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.controls p {
+  margin: 0;
+  text-align: center;
 }
 </style>
