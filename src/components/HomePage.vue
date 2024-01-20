@@ -14,6 +14,8 @@
     <router-link to="/sidescrolling2">Side Scrolling Frag fail :(</router-link>
     <router-link to="/sidescrolling3">Side Scrolling Component</router-link>
     <router-link to="/sidescrolling4">Side Scrolling Component v2</router-link>
+    <router-link to="/layered-clouds">Layered Clouds</router-link>
+    <router-link to="/perspective-scroll">Perspective Scroll</router-link>
   </div>
 </template>
 

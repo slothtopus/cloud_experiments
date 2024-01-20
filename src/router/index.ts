@@ -12,6 +12,8 @@ import SideScrolling from '@/components/SideScrolling/SideScrolling.vue'
 import SideScrollingFrag from '@/components/SideScrollingFrag/SideScrollingFrag.vue'
 import SideScrollingComponent from '@/components/SideScrollingComponent/SideScrollingComponent.vue'
 import SideScrollingComponent2 from '@/components/SideScrollingComponent2/SideScrollingComponent2.vue'
+import LayeredClouds from '@/components/LayeredClouds/LayeredClouds.vue'
+import PerspectiveScroll from '@/components/PerspectiveScroll/PerspectiveScroll.vue'
 
 import HomePage from '@/components/HomePage.vue'
 
@@ -32,7 +34,10 @@ const routes = [
   { path: '/sidescrolling', component: SideScrolling },
   { path: '/sidescrolling2', component: SideScrollingFrag },
   { path: '/sidescrolling3', component: SideScrollingComponent },
-  { path: '/sidescrolling4', component: SideScrollingComponent2 }
+  { path: '/sidescrolling4', component: SideScrollingComponent2 },
+  { path: '/layered-clouds', component: LayeredClouds },
+  { path: '/perspective-scroll', component: PerspectiveScroll }
+  //{ path: '/', component: LayeredClouds }
 ]
 
 export const router = createRouter({

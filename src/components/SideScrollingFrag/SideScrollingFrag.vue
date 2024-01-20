@@ -4,11 +4,8 @@ import { onMounted } from 'vue'
 import { resizeCanvasToDisplaySize } from 'twgl.js'
 import { createProgram, createShader } from '../../lib/webgl'
 
-import { createRotationMatrix4, matrixToColumnMajorArray } from './lib'
-
 import VERTEX_SHADER from './vertex.glsl'
 import FRAGMENT_SHADER from './fragment.glsl'
-import type { random } from 'mathjs'
 
 onMounted(() => {
   const canvas = document.getElementById('canvas') as HTMLCanvasElement

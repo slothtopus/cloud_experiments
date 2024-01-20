@@ -7,7 +7,6 @@
     "nightwatch.conf.*",
     "playwright.config.*"
   ],
-  "exclude": ["*.glsl"],
   "compilerOptions": {
     "composite": true,
     "module": "ESNext",

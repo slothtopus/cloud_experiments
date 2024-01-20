@@ -51,10 +51,10 @@ onMounted(() => {
   const cloudSpheresUniform = gl.getUniformLocation(program, 'cloud_spheres')
   const timeUniform = gl.getUniformLocation(program, 't')
 
-  const xRange = [-1, 1]
-  const yRange = [-0.3, 0.4]
-  const zRange = [-0.2, 0.35]
-  const rRange = [0.4, 0.5]
+  const xRange: [number, number] = [-1, 1]
+  const yRange: [number, number] = [-0.3, 0.4]
+  const zRange: [number, number] = [-0.2, 0.35]
+  const rRange: [number, number] = [0.4, 0.5]
   const points = 10
 
   //const midX = (xRange[0] + xRange[1]) / 2
