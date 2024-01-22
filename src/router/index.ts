@@ -16,6 +16,8 @@ import LayeredClouds from '@/components/LayeredClouds/LayeredClouds.vue'
 import PerspectiveScroll from '@/components/PerspectiveScroll/PerspectiveScroll.vue'
 import PerspectiveScrollClouds from '@/components/PerspectiveScrollClouds/PerspectiveScrollClouds.vue'
 import BeersLawCube from '@/components/BeersLawCube/BeersLawCube.vue'
+import PerlinNoise from '@/components/PerlinNoise/PerlinNoise.vue'
+import PerlinBeersCube from '@/components/BeersLawCube/PerlinBeersCube.vue'
 
 import HomePage from '@/components/HomePage.vue'
 
@@ -40,7 +42,9 @@ const routes = [
   { path: '/layered-clouds', component: LayeredClouds },
   { path: '/perspective-scroll', component: PerspectiveScroll },
   { path: '/perspective-clouds', component: PerspectiveScrollClouds },
-  { path: '/beers-law-cube', component: BeersLawCube }
+  { path: '/beers-law-cube', component: BeersLawCube },
+  { path: '/perlin-noise', component: PerlinNoise },
+  { path: '/perlin-beers-cube', component: PerlinBeersCube }
   //{ path: '/', component: LayeredClouds }
 ]
 

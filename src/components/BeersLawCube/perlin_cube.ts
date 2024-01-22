@@ -5,12 +5,11 @@ import {
   createTranslationMatrix4,
   createRotationMatrix4,
   multiplyMatrix4,
-  inverseMatrix4,
-  createScaleMatrix4
+  inverseMatrix4
 } from '@/lib/lib'
 
 import VERTEX_SHADER from './vertex_quad.glsl'
-import FRAGMENT_SHADER from './fragment_beers_cube.glsl'
+import FRAGMENT_SHADER from './fragment_perlin_cube.glsl'
 
 export const buildCubeProgram = (gl: WebGLRenderingContext) => {
   const vertexShader = createShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER)
@@ -40,16 +39,20 @@ export const buildCubeProgram = (gl: WebGLRenderingContext) => {
   const resolutionUniformLocation = gl.getUniformLocation(program, 'u_resolution')
   const stepSizeUniformLocation = gl.getUniformLocation(program, 'u_stepsize')
   const depthStepsLocation = gl.getUniformLocation(program, 'u_max_depth_steps')
+  const boxTransformLocation = gl.getUniformLocation(program, 'u_box_transform')
   const boxTransformInverseLocation = gl.getUniformLocation(program, 'u_box_transform_inverse')
+  const timeLocation = gl.getUniformLocation(program, 'u_time')
 
   return {
     program,
     bufferSetups,
     scrollUniformLocation,
+    boxTransformLocation,
     boxTransformInverseLocation,
     resolutionUniformLocation,
     stepSizeUniformLocation,
-    depthStepsLocation
+    depthStepsLocation,
+    timeLocation
   }
 }
 
@@ -58,32 +61,51 @@ export const drawCube = (
   {
     canvasWidth,
     canvasHeight,
+    mouseX,
+    mouseY,
     t,
     stepSize,
     depthSteps
-  }: { canvasWidth: number; canvasHeight: number; t: number; stepSize: number; depthSteps: number },
+  }: {
+    canvasWidth: number
+    canvasHeight: number
+    mouseX: number
+    mouseY: number
+    t: number
+    stepSize: number
+    depthSteps: number
+  },
   {
     program,
     bufferSetups,
+    boxTransformLocation,
     boxTransformInverseLocation,
     resolutionUniformLocation,
     stepSizeUniformLocation,
-    depthStepsLocation
+    depthStepsLocation,
+    timeLocation
   }: ReturnType<typeof buildCubeProgram>
 ) => {
   gl.useProgram(program)
   bufferSetups.forEach((b) => b())
+
   gl.uniform2fv(resolutionUniformLocation, [canvasWidth, canvasHeight])
-  const m = inverseMatrix4(
-    multiplyMatrix4(
-      createTranslationMatrix4(0, 0, -10),
-      createRotationMatrix4((t * Math.PI) / 2, (t * Math.PI) / 3, (t * Math.PI) / 4)
-      //createRotationMatrix4(Math.PI / 2, Math.PI / 4, Math.PI / 4)
-    )
+
+  const m = multiplyMatrix4(
+    createTranslationMatrix4(0, 0, -10),
+    //createRotationMatrix4((t * Math.PI) / 2, (t * Math.PI) / 3, (t * Math.PI) / 4)
+    createRotationMatrix4(mouseY * Math.PI, mouseX * -Math.PI, 0)
   )
-  gl.uniformMatrix4fv(boxTransformInverseLocation, false, matrixToColumnMajorArray(m))
+  gl.uniformMatrix4fv(boxTransformLocation, false, matrixToColumnMajorArray(m))
+  gl.uniformMatrix4fv(
+    boxTransformInverseLocation,
+    false,
+    matrixToColumnMajorArray(inverseMatrix4(m))
+  )
+
   gl.uniform1f(stepSizeUniformLocation, stepSize)
   gl.uniform1i(depthStepsLocation, depthSteps)
+  gl.uniform1f(timeLocation, t)
 
   gl.drawArrays(gl.TRIANGLES, 0, 6)
 }

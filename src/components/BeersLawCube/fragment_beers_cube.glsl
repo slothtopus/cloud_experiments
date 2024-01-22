@@ -130,7 +130,7 @@ void main() {
         //d = d / 20.;
 
         // Beer's law
-        float a = 0.5; // absorption coefficient
+        float a = 0.35; // absorption coefficient
         float l = exp(-thickness * a);
         gl_FragColor = vec4(1. - l, 1. - l, 1. - l, 1);
     }

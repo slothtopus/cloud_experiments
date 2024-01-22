@@ -1,18 +1,18 @@
 import { createProgram, createShader } from '../../lib/webgl'
 
-import {
+/*import {
   matrixToColumnMajorArray,
   createTranslationMatrix4,
   createRotationMatrix4,
   multiplyMatrix4,
   inverseMatrix4,
   createScaleMatrix4
-} from '@/lib/lib'
+} from '@/lib/lib'*/
 
 import VERTEX_SHADER from './vertex_quad.glsl'
-import FRAGMENT_SHADER from './fragment_beers_cube.glsl'
+import FRAGMENT_SHADER from './fragment_noise.glsl'
 
-export const buildCubeProgram = (gl: WebGLRenderingContext) => {
+export const buildNoiseProgram = (gl: WebGLRenderingContext) => {
   const vertexShader = createShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER)
   const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER)
 
@@ -38,52 +38,30 @@ export const buildCubeProgram = (gl: WebGLRenderingContext) => {
 
   const scrollUniformLocation = gl.getUniformLocation(program, 'u_scroll_pct')
   const resolutionUniformLocation = gl.getUniformLocation(program, 'u_resolution')
-  const stepSizeUniformLocation = gl.getUniformLocation(program, 'u_stepsize')
-  const depthStepsLocation = gl.getUniformLocation(program, 'u_max_depth_steps')
-  const boxTransformInverseLocation = gl.getUniformLocation(program, 'u_box_transform_inverse')
+  const timeUniformLocation = gl.getUniformLocation(program, 'u_time')
 
   return {
     program,
     bufferSetups,
     scrollUniformLocation,
-    boxTransformInverseLocation,
     resolutionUniformLocation,
-    stepSizeUniformLocation,
-    depthStepsLocation
+    timeUniformLocation
   }
 }
 
-export const drawCube = (
+export const drawNoise = (
   gl: WebGLRenderingContext,
-  {
-    canvasWidth,
-    canvasHeight,
-    t,
-    stepSize,
-    depthSteps
-  }: { canvasWidth: number; canvasHeight: number; t: number; stepSize: number; depthSteps: number },
+  { canvasWidth, canvasHeight, t }: { canvasWidth: number; canvasHeight: number; t: number },
   {
     program,
     bufferSetups,
-    boxTransformInverseLocation,
     resolutionUniformLocation,
-    stepSizeUniformLocation,
-    depthStepsLocation
-  }: ReturnType<typeof buildCubeProgram>
+    timeUniformLocation
+  }: ReturnType<typeof buildNoiseProgram>
 ) => {
   gl.useProgram(program)
   bufferSetups.forEach((b) => b())
   gl.uniform2fv(resolutionUniformLocation, [canvasWidth, canvasHeight])
-  const m = inverseMatrix4(
-    multiplyMatrix4(
-      createTranslationMatrix4(0, 0, -10),
-      createRotationMatrix4((t * Math.PI) / 2, (t * Math.PI) / 3, (t * Math.PI) / 4)
-      //createRotationMatrix4(Math.PI / 2, Math.PI / 4, Math.PI / 4)
-    )
-  )
-  gl.uniformMatrix4fv(boxTransformInverseLocation, false, matrixToColumnMajorArray(m))
-  gl.uniform1f(stepSizeUniformLocation, stepSize)
-  gl.uniform1i(depthStepsLocation, depthSteps)
-
+  gl.uniform1f(timeUniformLocation, t)
   gl.drawArrays(gl.TRIANGLES, 0, 6)
 }

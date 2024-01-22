@@ -18,6 +18,8 @@
     <router-link to="/perspective-scroll">Perspective Scroll</router-link>
     <router-link to="/perspective-clouds">Perspective Scroll Clouds</router-link>
     <router-link to="/beers-law-cube">Beers Law Cube</router-link>
+    <router-link to="/perlin-noise">Perlin Noise</router-link>
+    <router-link to="/perlin-beers-cube">Perlin Beers Cube</router-link>
   </div>
 </template>
 
