@@ -15,6 +15,7 @@ import SideScrollingComponent2 from '@/components/SideScrollingComponent2/SideSc
 import LayeredClouds from '@/components/LayeredClouds/LayeredClouds.vue'
 import PerspectiveScroll from '@/components/PerspectiveScroll/PerspectiveScroll.vue'
 import PerspectiveScrollClouds from '@/components/PerspectiveScrollClouds/PerspectiveScrollClouds.vue'
+import BeersLawCube from '@/components/BeersLawCube/BeersLawCube.vue'
 
 import HomePage from '@/components/HomePage.vue'
 
@@ -38,7 +39,8 @@ const routes = [
   { path: '/sidescrolling4', component: SideScrollingComponent2 },
   { path: '/layered-clouds', component: LayeredClouds },
   { path: '/perspective-scroll', component: PerspectiveScroll },
-  { path: '/perspective-clouds', component: PerspectiveScrollClouds }
+  { path: '/perspective-clouds', component: PerspectiveScrollClouds },
+  { path: '/beers-law-cube', component: BeersLawCube }
   //{ path: '/', component: LayeredClouds }
 ]
 

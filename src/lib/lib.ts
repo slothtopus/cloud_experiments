@@ -1,3 +1,5 @@
+import { inv, matrix } from 'mathjs'
+
 export const CUBE_LINES = [
   // front face
   [-0.5, 0.5, 0.5],
@@ -218,6 +220,19 @@ export const createRotationMatrix4 = (xTheta: number, yTheta: number, zTheta: nu
   }
 
   return multiplyMatrix4(multiplyMatrix4(xRotate, yRotate), zRotate)
+}
+
+export const createScaleMatrix4 = (xScale: number, yScale: number, zScale: number): Matrix4 => {
+  const m = createIdentityMatrix()
+  m[0][0] = xScale
+  m[1][1] = yScale
+  m[2][2] = zScale
+  return m
+}
+
+export const inverseMatrix4 = (m: Matrix4): Matrix4 => {
+  const invM = inv(matrix(m))
+  return invM.toArray() as Matrix4
 }
 
 export const normalisePoint4 = (p: Point4): Point4 => {

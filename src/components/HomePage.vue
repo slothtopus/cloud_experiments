@@ -17,6 +17,7 @@
     <router-link to="/layered-clouds">Layered Clouds</router-link>
     <router-link to="/perspective-scroll">Perspective Scroll</router-link>
     <router-link to="/perspective-clouds">Perspective Scroll Clouds</router-link>
+    <router-link to="/beers-law-cube">Beers Law Cube</router-link>
   </div>
 </template>
 
@@ -29,7 +30,6 @@
   background-color: black;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
   padding: 1rem;
   overflow: auto;

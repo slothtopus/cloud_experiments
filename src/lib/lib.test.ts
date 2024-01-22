@@ -6,7 +6,8 @@ import {
   createTranslationMatrix4,
   createFrustrumProjectionMatrix,
   normalisePoint4,
-  CUBE_LINES
+  inverseMatrix4,
+  createIdentityMatrix
 } from './lib'
 import type { Matrix4, Point4 } from './lib'
 
@@ -83,8 +84,13 @@ test('perspective project points 2', () => {
   expect(normalisePoint4(multiplyMatrix4Point4(pm, p2))).toEqual([1 / 10, 1 / 5, 1 / 4, 1])
 })
 
-test('perspective project points 3', () => {
-  const p1: Point4 = [0, 0, -3, 1]
-  const pm = createFrustrumProjectionMatrix(-1, 1, -1, 1, 0.9999999, 3)
-  console.log(normalisePoint4(multiplyMatrix4Point4(pm, p1)))
+test('inverse of matrix', () => {
+  const m: Matrix4 = [
+    [5, 7, 9, 10],
+    [2, 3, 3, 8],
+    [8, 10, 2, 3],
+    [3, 3, 4, 8]
+  ]
+
+  console.log(multiplyMatrix4(m, inverseMatrix4(m)))
 })
