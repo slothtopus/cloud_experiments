@@ -1,0 +1,19 @@
+#version 300 es
+
+precision mediump float;
+precision lowp sampler3D;
+
+in vec2 v_position;
+
+uniform vec2 u_resolution;
+uniform float u_time;
+uniform sampler3D uTexture;
+
+out vec4 fragColor; // Declare output fragment color
+
+void main() {
+    vec2 uv = vec2((u_resolution.x / u_resolution.y) * (v_position.x + 1.f) / 2.f, (v_position.y + 1.f) / 2.f);
+
+    float textureValue = texture(uTexture, vec3(uv.x + u_time, uv.y + sin(u_time * 6.f) / 3.f, u_time)).r; // Assuming you want to use u_time for the z-coordinate
+    fragColor = vec4(textureValue, textureValue, textureValue, 1.0f); // Set output color
+}

@@ -19,7 +19,13 @@
     <router-link to="/perspective-clouds">Perspective Scroll Clouds</router-link>
     <router-link to="/beers-law-cube">Beers Law Cube</router-link>
     <router-link to="/perlin-noise">Perlin Noise</router-link>
+    <router-link to="/perlin-noise-texture">Perlin Noise From Texture</router-link>
     <router-link to="/perlin-beers-cube">Perlin Beers Cube</router-link>
+    <router-link to="/lit-perlin-beer-cube">Lit Perlin Beers Cube</router-link>
+    <router-link to="/lit-perlin-beer-cube2">Lit Perlin Beers Cube 2</router-link>
+    <router-link to="/carved-cube">Carved Cube</router-link>
+    <router-link to="/beers-carved-cube">Beers Carved Cube</router-link>
+    <router-link to="/lit-beers-carved-cube">Lit Beers Carved Cube</router-link>
   </div>
 </template>
 

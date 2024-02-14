@@ -1,4 +1,8 @@
-export const createShader = (gl: WebGLRenderingContext, type: number, source: string) => {
+export const createShader = (
+  gl: WebGLRenderingContext | WebGL2RenderingContext,
+  type: number,
+  source: string
+) => {
   const shader = gl.createShader(type)
   if (shader === null) throw `gl.createShader(${type}) returned null`
   gl.shaderSource(shader, source)
@@ -13,7 +17,7 @@ export const createShader = (gl: WebGLRenderingContext, type: number, source: st
 }
 
 export const createProgram = (
-  gl: WebGLRenderingContext,
+  gl: WebGLRenderingContext | WebGL2RenderingContext,
   vertexShader: WebGLShader,
   fragmentShader: WebGLShader
 ) => {

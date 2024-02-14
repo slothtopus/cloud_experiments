@@ -17,7 +17,13 @@ import PerspectiveScroll from '@/components/PerspectiveScroll/PerspectiveScroll.
 import PerspectiveScrollClouds from '@/components/PerspectiveScrollClouds/PerspectiveScrollClouds.vue'
 import BeersLawCube from '@/components/BeersLawCube/BeersLawCube.vue'
 import PerlinNoise from '@/components/PerlinNoise/PerlinNoise.vue'
+import PerlinNoiseFromTexture from '@/components/PerlinNoise/PerlinNoiseFromTexture.vue'
 import PerlinBeersCube from '@/components/BeersLawCube/PerlinBeersCube.vue'
+import LitPerlinBeerCube from '@/components/BeersLawCube/LitPerlinBeerCube.vue'
+import LitPerlinBeerCube2 from '@/components/BeersLawCube/LitPerlinBeerCube2.vue'
+import CarvedCube from '@/components/CarvedCube/CarvedCube.vue'
+import BeersCarvedCube from '@/components/CarvedCube/BeersCarvedCube.vue'
+import LitBeersCarvedCube from '@/components/CarvedCube/LitBeersCarvedCube.vue'
 
 import HomePage from '@/components/HomePage.vue'
 
@@ -44,7 +50,13 @@ const routes = [
   { path: '/perspective-clouds', component: PerspectiveScrollClouds },
   { path: '/beers-law-cube', component: BeersLawCube },
   { path: '/perlin-noise', component: PerlinNoise },
-  { path: '/perlin-beers-cube', component: PerlinBeersCube }
+  { path: '/perlin-noise-texture', component: PerlinNoiseFromTexture },
+  { path: '/perlin-beers-cube', component: PerlinBeersCube },
+  { path: '/lit-perlin-beer-cube', component: LitPerlinBeerCube },
+  { path: '/lit-perlin-beer-cube2', component: LitPerlinBeerCube2 },
+  { path: '/carved-cube', component: CarvedCube },
+  { path: '/beers-carved-cube', component: BeersCarvedCube },
+  { path: '/lit-beers-carved-cube', component: LitBeersCarvedCube }
   //{ path: '/', component: LayeredClouds }
 ]
 

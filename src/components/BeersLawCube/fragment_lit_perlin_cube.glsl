@@ -7,6 +7,7 @@ precision mediump float;
 
 uniform mat4 u_box_transform_inverse;
 uniform mat4 u_box_transform;
+uniform mat4 u_light_transform;
 uniform float u_stepsize;
 uniform float u_time;
 uniform int u_max_depth_steps;
@@ -92,6 +93,13 @@ float perlin3d(vec3 uv, float k, float seed) {
     return perlin;
 }
 
+// Noise ranges from [0.1, 1]
+// (well it used to)
+float generateNoise(vec3 p) {
+    return min(max(perlin3d(p, 2.5, 69.), 0.) + 0.5, 1.);
+    //return 1.0;
+}
+
 float sdBox(vec3 p, vec3 b) {
     vec3 q = abs(p) - b;
     return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
@@ -106,10 +114,7 @@ float sdEllipsoid(vec3 p, vec3 r) {
 float sceneDistanceTransformed(vec3 p) {
     vec4 p_transformed = u_box_transform_inverse * vec4(p, 1);
     return sdBox(p_transformed.xyz, vec3(2, 2, 2));
-}
-
-float sceneDistance(vec3 p) {
-    return sdBox(p, vec3(2, 2, 2));
+    //return sdEllipsoid(p_transformed.xyz, vec3(3, 2, 2));
 }
 
 float RayMarch(vec3 ro, vec3 rd) {
@@ -122,25 +127,6 @@ float RayMarch(vec3 ro, vec3 rd) {
             break;
     }
     return dO;
-}
-
-float calculateThickness(vec3 entryPoint, vec3 rayDirection) {
-    //vec3 transformedEntryPoint = (u_box_transform * vec4(entryPoint, 1)).xyz;
-    float totalDistance = 0.0;
-    vec3 currentPosition = entryPoint;
-
-    for(int i = 0; i < 10000; i++) {
-        currentPosition += rayDirection * u_stepsize; // Small step to ensure we start inside the object
-        //float noise = perlin3d(currentPosition, 2., 103.);
-        totalDistance += u_stepsize;
-        float distanceToSurface = sceneDistance(currentPosition);
-        if(i >= u_max_depth_steps)
-            break;
-        if(distanceToSurface > SURF_DIST) {
-            break; // Exit point found
-        }
-    }
-    return totalDistance;
 }
 
 float calculateDensity(vec3 entryPoint, vec3 rayDirection) {
@@ -162,6 +148,56 @@ float calculateDensity(vec3 entryPoint, vec3 rayDirection) {
     return totalDensity;
 }
 
+vec2 calculateLight(vec3 entryPoint, vec3 rayDirection) {
+    //vec3 transformedEntryPoint = (u_box_transform * vec4(entryPoint, 1)).xyz;
+
+    //vec3 lightPosition = (u_box_transform_inverse * vec4(0, 10, -20, 1.)).xyz;
+
+    vec3 lightPosition = (u_light_transform * vec4(0, 0, -20, 1)).xyz;
+
+    float cameraRayDensity = 0.0;
+    float totalLightEmittedToCamera = 0.0;
+    vec3 currentRayPosition = entryPoint;
+
+    float ABSORPTION = 0.45;
+
+    for(int i = 0; i < 10000; i++) {
+        currentRayPosition += rayDirection * u_stepsize; // Small step to ensure we start inside the object
+        float noise1 = generateNoise((u_box_transform_inverse * vec4(currentRayPosition, 1)).xyz);
+        cameraRayDensity += u_stepsize * noise1;
+
+        float distanceToSurface1 = sceneDistanceTransformed(currentRayPosition);
+        if(i >= u_max_depth_steps)
+            break;
+        if(distanceToSurface1 > SURF_DIST) {
+            break; // Exit point found
+        }
+
+        // Get density-weighted distance of ray from currentRayPosition to light
+        vec3 lightDirection = normalize(lightPosition - currentRayPosition);
+        vec3 currentLightPosition = currentRayPosition;
+        float lightTravelDensity = 0.0;
+
+        for(int j = 0; j < 10000; j++) {
+            float noise2 = generateNoise((u_box_transform_inverse * vec4(currentLightPosition, 1)).xyz);
+            lightTravelDensity += u_stepsize * noise2;
+            currentLightPosition += lightDirection * u_stepsize;
+            float distanceToSurface2 = sceneDistanceTransformed(currentLightPosition);
+            if(j >= u_max_depth_steps)
+                break;
+            if(distanceToSurface2 > SURF_DIST) {
+                break; // Exit point found
+            }
+        }
+
+        float lightReachingSamplePoint = exp(-lightTravelDensity * ABSORPTION);
+
+        float lightEmittedTowardsCameraFromPoint = lightReachingSamplePoint * exp(-cameraRayDensity * ABSORPTION);
+        totalLightEmittedToCamera += lightEmittedTowardsCameraFromPoint * u_stepsize;
+    }
+    return vec2(exp(-cameraRayDensity * ABSORPTION), totalLightEmittedToCamera);
+}
+
 void main() {
     // camera position
     vec3 ro = vec3(0, 0, 5);
@@ -171,20 +207,41 @@ void main() {
 
     float d = RayMarch(ro, rd);
 
-    //gl_FragColor = vec4(0.05, 0.33, 0.71, 1);
     if(d >= 20.) {
         gl_FragColor = vec4(0.05, 0.33, 0.71, 1);
-       // gl_FragColor = vec4(0, 0, 0, 1);
     } else {
         vec3 p = ro + rd * d;
 
-        float density = calculateDensity(p, rd);
+        vec2 lightVals = calculateLight(p, rd);
+
+        float cloudDensity = clamp(lightVals.x, 0.0, 1.0);
+        float lightIntensity = clamp(lightVals.y / 2.0, 0.0, 1.0);
+        //float lightIntensity = 0.25;
+
+        vec3 cloudColour = lightIntensity * vec3(1., 1., 1.) + (1. - lightIntensity) * vec3(0.25, 0.25, 0.25);
+        //vec3 cloudColour = vec3(1, 1, 1);
+
+        //gl_FragColor = cloudDensity * cloudColour + (1. - cloudDensity) * vec4(0.05, 0.33, 0.71, 1);
+
+        //gl_FragColor = vec4(cloudColour, 1);
+
+        //cloudDensity = 1.0 - cloudDensity;
+        //cloudDensity *= 2.0;
+
+        cloudDensity = 1.0 - cloudDensity;
+        cloudDensity *= 3.5;
+        cloudDensity = clamp(cloudDensity - 0.5, 0.0, 1.0);
+        gl_FragColor = vec4(cloudDensity * cloudColour + (1. - cloudDensity) * vec3(0.05, 0.33, 0.71), 1.0);
+
+        //gl_FragColor = vec4(clamp(cloudDensity, 0.0, 1.0), clamp(cloudDensity, 1.0, 2.0) - 1.0, clamp(cloudDensity, 2.0, 3.0) - 2.0, 1);
+
+        //gl_FragColor = vec4(cloudDensity * cloudColour + (1. - cloudDensity) * vec3(0.05, 0.33, 0.71), 1);
+
+        /*float density = calculateDensity(p, rd);
         float a = 0.75; // absorption coefficient
         float l = exp(-density * a);
         l = l * 2.75;
-        //l = pow(l, 0.5);
-        //gl_FragColor = vec4(1. - l, 1. - l, 1. - l, 1);
-        gl_FragColor = vec4(max(1. - l, 0.) * vec3(1, 1, 1) + min(l, 1.0) * vec3(0.05, 0.33, 0.71), 1);
+        gl_FragColor = vec4(max(1. - l, 0.) * vec3(1, 1, 1) + min(l, 1.0) * vec3(0.05, 0.33, 0.71), 1);*/
     }
 
 }

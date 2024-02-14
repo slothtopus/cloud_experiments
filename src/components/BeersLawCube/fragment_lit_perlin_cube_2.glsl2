@@ -1,0 +1,174 @@
+#version 300 es
+
+precision mediump float;
+precision lowp sampler3D;
+
+  #define MAX_STEPS 100
+  #define MAX_DIST 100.
+  #define SURF_DIST .01
+
+in vec2 v_position;
+
+uniform mat4 u_box_transform_inverse;
+uniform mat4 u_box_transform;
+uniform mat4 u_light_transform;
+uniform float u_stepsize;
+uniform float u_time;
+uniform int u_max_depth_steps;
+uniform vec2 u_resolution;
+
+uniform sampler3D uTexture;
+
+out vec4 fragColor; // Declare output fragment color
+
+float generateNoise(vec3 p) {
+    vec3 s = vec3(p.xy, p.z + u_time);
+    float textureValue = texture(uTexture, s / 10.0f).r;
+
+    return textureValue;
+    //return 1.0f;
+}
+float sdEllipsoid(vec3 p, vec3 r) {
+    float k0 = length(p / r);
+    float k1 = length(p / (r * r));
+    return k0 * (k0 - 1.0f) / k1;
+}
+
+float sdBox(vec3 p, vec3 b) {
+    vec3 q = abs(p) - b;
+    return length(max(q, 0.0f)) + min(max(q.x, max(q.y, q.z)), 0.0f);
+}
+
+float sceneDistanceTransformed(vec3 p) {
+    vec4 p_transformed = u_box_transform_inverse * vec4(p, 1);
+    return sdBox(p_transformed.xyz, vec3(2, 2, 2));
+    //return sdEllipsoid(p_transformed.xyz, vec3(3, 2, 2));
+}
+
+float RayMarch(vec3 ro, vec3 rd) {
+    float dO = 0.f;
+    for(int i = 0; i < MAX_STEPS; i++) {
+        vec3 p = ro + rd * dO;
+        float dS = sceneDistanceTransformed(p);
+        dO += dS;
+        if(dO > MAX_DIST || dS < SURF_DIST)
+            break;
+    }
+    return dO;
+}
+
+vec4 calculateLuminance(vec3 entryPoint, vec3 rayDirection) {
+    //vec3 lightPosition = (u_light_transform * vec4(0, 0, -20, 1)).xyz;
+
+    vec3 currentRayPosition = entryPoint;
+
+    vec4 intScattTrans = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+
+    vec3 luminance = vec3(1.0f, 1.0f, 1.0f);
+    float scattering = 0.5f;
+    float extinction = scattering;
+
+    for(int i = 0; i < 10000; i++) {
+        currentRayPosition += rayDirection * u_stepsize; // Small step to ensure we start inside the object
+
+        float density = generateNoise((u_box_transform_inverse * vec4(currentRayPosition, 1)).xyz);
+        //float transmittance = exp(-extinction * u_stepsize);
+
+        float distanceToSurface1 = sceneDistanceTransformed(currentRayPosition);
+        if(i >= u_max_depth_steps)
+            break;
+        if(distanceToSurface1 > SURF_DIST) {
+            break; // Exit point found
+        }
+
+        intScattTrans.xyz += intScattTrans.w * density * scattering * u_stepsize * luminance;
+        intScattTrans.w *= exp(-density * extinction * u_stepsize);
+    }
+
+    return intScattTrans;
+}
+
+/*vec2 calculateLight(vec3 entryPoint, vec3 rayDirection) {
+    vec3 lightPosition = (u_light_transform * vec4(0, 0, -20, 1)).xyz;
+
+    float cameraRayDensity = 0.0f;
+    float totalLightEmittedToCamera = 0.0f;
+    vec3 currentRayPosition = entryPoint;
+
+    float ABSORPTION = 0.45f;
+
+    for(int i = 0; i < 10000; i++) {
+        currentRayPosition += rayDirection * u_stepsize; // Small step to ensure we start inside the object
+        float noise1 = generateNoise((u_box_transform_inverse * vec4(currentRayPosition, 1)).xyz);
+        cameraRayDensity += u_stepsize * noise1;
+
+        float distanceToSurface1 = sceneDistanceTransformed(currentRayPosition);
+
+        if(i >= u_max_depth_steps)
+            break;
+        if(distanceToSurface1 > SURF_DIST) {
+            break; // Exit point found
+        }
+
+        // Get density-weighted distance of ray from currentRayPosition to light
+        vec3 lightDirection = normalize(lightPosition - currentRayPosition);
+        vec3 currentLightPosition = currentRayPosition;
+        float lightTravelDensity = 0.0f;
+
+        for(int j = 0; j < 10000; j++) {
+            float noise2 = generateNoise((u_box_transform_inverse * vec4(currentLightPosition, 1)).xyz);
+            lightTravelDensity += u_stepsize * noise2;
+            currentLightPosition += lightDirection * u_stepsize;
+            float distanceToSurface2 = sceneDistanceTransformed(currentLightPosition);
+            if(j >= u_max_depth_steps)
+                break;
+            if(distanceToSurface2 > SURF_DIST) {
+                break; // Exit point found
+            }
+        }
+
+        float lightReachingSamplePoint = exp(-lightTravelDensity * ABSORPTION);
+
+        float lightEmittedTowardsCameraFromPoint = lightReachingSamplePoint * exp(-cameraRayDensity * ABSORPTION);
+        totalLightEmittedToCamera += lightEmittedTowardsCameraFromPoint * u_stepsize;
+    }
+    return vec2(exp(-cameraRayDensity * ABSORPTION), totalLightEmittedToCamera);
+}*/
+
+void main() {
+    vec3 ro = vec3(0, 0, 5);
+     // can take ray direction as this because our camera is at 0,0
+    float zoom = 3.f;
+    vec3 rd = normalize(vec3(v_position.x * (u_resolution.x / u_resolution.y) / zoom, v_position.y / zoom, -1));
+
+    float d = RayMarch(ro, rd);
+
+    vec3 colour = vec3(0.05f, 0.33f, 0.71f);
+
+    if(d < 20.f) {
+        vec3 p = ro + rd * d;
+
+        vec4 intScattTrans = calculateLuminance(p, rd);
+        //intScattTrans /= 10.0f;
+
+        //float mix = max(intScattTrans.w - 0.2f, 0.0f) + 0.2f;
+
+        /*float cutoff = 0.1f;
+        float m = 1.0f - intScattTrans.w;
+        float mix = m - max(cutoff - m, 0.0f);*/
+
+        //intScattTrans.xyz /= 4.0f;
+        //fragColor = vec4(mix * intScattTrans.xyz + (1.f - mix) * vec3(0.05f, 0.33f, 0.71f), 1.0f);
+        //fragColor = vec4(mix * intScattTrans.xyz + (1.0f - mix) * vec3(0.05f, 0.33f, 0.71f), 1.0f);
+
+        float v = clamp(intScattTrans.w + 0.1f, 0.0f, 1.0f);
+        if(v >= 0.8f) {
+            v = 1.0f;
+        }
+
+        colour = intScattTrans.w * colour + intScattTrans.xyz;
+
+        //fragColor = vec4(v * skyCol + (1.0f - v) * intScattTrans.xyz, 1.0f);
+    }
+    fragColor = vec4(pow(colour, vec3(1.0f / 2.2f)), 1.0f);
+}

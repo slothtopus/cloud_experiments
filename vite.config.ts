@@ -6,7 +6,7 @@ import plainText from 'vite-plugin-plain-text'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [vue(), plainText([/\.glsl$/], { namedExport: false })],
+  plugins: [vue(), plainText([/\.glsl2?$/], { namedExport: false })],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))

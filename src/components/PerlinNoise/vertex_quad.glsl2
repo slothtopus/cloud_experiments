@@ -2,9 +2,9 @@
 
 precision mediump float;
 
-attribute vec2 a_quad;
+in vec2 a_quad;
 
-varying vec2 v_position;
+out vec2 v_position;
 
 void main() {
     gl_Position = vec4(a_quad, 0, 1);

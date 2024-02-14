@@ -135,10 +135,9 @@ float perlin3d(vec3 uv, float k, float seed) {
 }
 
 void main() {
-    vec2 uv = vec2((v_position.x * (u_resolution.x / u_resolution.y) + 1.) / 2., (v_position.y + 1.) / 2.);
+    vec2 uv = vec2((v_position.x * (u_resolution.x / u_resolution.y) + 1.) * 2., (v_position.y + 1.) * 2.);
 
     //float perlin1 = perlin2d(uv, 5., 103.);
-    float perlin1 = perlin3d(vec3(uv, fract(u_time)), 10., 103.);
-
-    gl_FragColor = vec4(vec3(perlin1, perlin1, perlin1) + 0.3, 1);
+    float perlin1 = min(max(perlin3d(vec3(uv, u_time * 0.25), 2.0, 69.) + 0.3, 0.) + 0.1, 1.);
+    gl_FragColor = vec4(vec3(perlin1, perlin1, perlin1), 1);
 }
