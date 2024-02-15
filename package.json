@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@math.gl/core": "^4.0.0",
+    "gsap": "^3.12.5",
     "mathjs": "^11.11.1",
     "pixijs": "^7.1.4",
     "twgl.js": "^5.5.3",

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import gsap from 'gsap'
 
 import ShaderTemplate from '../common/ShaderTemplate.vue'
 import { CONTROL_DEFAULTS } from '../common/shaderControls.types'
@@ -25,6 +26,18 @@ onMounted(async () => {
 
   // ----------------------- ANIMATE -----------------------
 
+  let vanish = { t: 0 }
+  let vanished = false
+  window.addEventListener('click', () => {
+    if (vanished) {
+      vanished = false
+      gsap.to(vanish, { t: 0, duration: 1.5, ease: 'power1.out' })
+    } else {
+      vanished = true
+      gsap.to(vanish, { t: 1, duration: 1.5, ease: 'power1.in' })
+    }
+  })
+
   const animate = (delta: number) => {
     const t = delta / 10000
 
@@ -49,7 +62,8 @@ onMounted(async () => {
         canvasWidth,
         canvasHeight,
         draggedMouseX,
-        draggedMouseY
+        draggedMouseY,
+        vanish: vanish.t
       },
       cubeProgramParams
     )
@@ -67,7 +81,7 @@ onUnmounted(() => {
   <ShaderTemplate
     @update:controls="controls = $event"
     @webglReady="webGLPromise.resolve($event)"
-    :initialControls="{ quality: 40, stepSize: 5 }"
+    :initialControls="{ quality: 50, stepSize: 5, depthSteps: 15 }"
   />
 </template>
 

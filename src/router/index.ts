@@ -63,7 +63,7 @@ const routes = [
   { path: '/template-test', component: TemplateTest },
   { path: '/sdf-font', component: SDFFont },
   { path: '/cloudy-sdf-font', component: CloudySDFFont }
-  //{ path: '/', component: LitBeersCarvedCube }
+  //{ path: '/', component: CloudySDFFont }
 ]
 
 export const router = createRouter({

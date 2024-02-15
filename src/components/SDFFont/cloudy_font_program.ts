@@ -42,6 +42,7 @@ export const buildProgram = async (
   const lightTransformLocation = gl.getUniformLocation(program, 'u_light_transform')
   const mousePosLocation = gl.getUniformLocation(program, 'u_mousepos')
   const timeLocation = gl.getUniformLocation(program, 'u_time')
+  const vanishLocation = gl.getUniformLocation(program, 'u_vanish')
 
   console.log('getting texture')
   const response = await fetch('perlin_3d_T_128_128_10.bin')
@@ -80,7 +81,8 @@ export const buildProgram = async (
     stepSizeUniformLocation,
     depthStepsLocation,
     timeLocation,
-    mousePosLocation
+    mousePosLocation,
+    vanishLocation
   }
 }
 
@@ -95,7 +97,8 @@ export const draw = (
     normalisedMouseX,
     normalisedMouseY,
     depthSteps,
-    stepSize
+    stepSize,
+    vanish
   }: {
     t: number
     canvasWidth: number
@@ -106,6 +109,7 @@ export const draw = (
     normalisedMouseY: number
     depthSteps: number
     stepSize: number
+    vanish: number
   },
   {
     program,
@@ -116,7 +120,8 @@ export const draw = (
     timeLocation,
     depthStepsLocation,
     stepSizeUniformLocation,
-    lightTransformLocation
+    lightTransformLocation,
+    vanishLocation
   }: Awaited<ReturnType<typeof buildProgram>>
 ) => {
   gl.useProgram(program)
@@ -137,6 +142,7 @@ export const draw = (
   gl.uniform1i(depthStepsLocation, depthSteps)
   gl.uniform1f(timeLocation, t)
   gl.uniform2fv(mousePosLocation, [normalisedMouseX, normalisedMouseY])
+  gl.uniform1f(vanishLocation, vanish)
 
   gl.drawArrays(gl.TRIANGLES, 0, 6)
 }

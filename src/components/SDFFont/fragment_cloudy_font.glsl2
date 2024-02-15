@@ -18,6 +18,7 @@ uniform mat4 u_light_transform;
 uniform float u_stepsize;
 uniform float u_time;
 uniform int u_max_depth_steps;
+uniform float u_vanish;
 
 uniform sampler3D uTexture;
 
@@ -174,12 +175,52 @@ float getNoise(vec3 p) {
 }
 
 float carveUp(vec3 p, float d) {
-    # if 1
-    float textureValue = getNoise(p / 2.0f + vec3(sin(u_time / 3.0f), cos(u_time / 2.123f), -sin(u_time)));
+    # if 0
+    float textureValue = getNoise(p / 1.75f + vec3(sin(u_time / 3.0f), cos(u_time / 2.123f), -sin(u_time)));
     # else
-    float textureValue = getNoise(p / 15.0f);
+    //float textureValue = getNoise(p / (1.75f + u_vanish));
+    float textureValue = getNoise(p / 1.75f);
     # endif
-    return d - textureValue * 0.175f;
+    return d - textureValue * (0.2f + 0.75f * u_vanish);
+    //return d - textureValue * 0.2f * (1.0f - u_vanish * 0.5f);
+}
+
+mat4 transformationMatrix(vec3 translation, vec3 rotation) {
+    mat4 translationMatrix = mat4(1.0f); // Identity matrix
+    translationMatrix[3][0] = translation.x;
+    translationMatrix[3][1] = translation.y;
+    translationMatrix[3][2] = translation.z;
+
+  // Create rotation matrices for each axis
+    float cosX = cos(rotation.x);
+    float sinX = sin(rotation.x);
+    mat4 rotationX = mat4(1.0f, 0.0f, 0.0f, 0.0f, 0.0f, cosX, -sinX, 0.0f, 0.0f, sinX, cosX, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+
+    float cosY = cos(rotation.y);
+    float sinY = sin(rotation.y);
+    mat4 rotationY = mat4(cosY, 0.0f, sinY, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, -sinY, 0.0f, cosY, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+
+    float cosZ = cos(rotation.z);
+    float sinZ = sin(rotation.z);
+    mat4 rotationZ = mat4(cosZ, -sinZ, 0.0f, 0.0f, sinZ, cosZ, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+
+    // Combine the matrices
+    mat4 transformationMatrix = rotationX * rotationY * rotationZ * translationMatrix;
+
+    return transformationMatrix;
+}
+
+vec3 floatAndWobble(vec3 p, float offset) {
+    float t = u_time + offset;
+    float s1 = sin(t * 4.0f);
+    float c1 = cos(t * 8.0f);
+    float s2 = sin(-t * 12.0f);
+    float c2 = cos(-t * 14.0f);
+
+    return (transformationMatrix(vec3(s1 / 9.0f, c1 / 9.0f, 0.0f), vec3(s2 * c1 * M_PI * 0.01f, c2 * s1 * M_PI * 0.02f, s1 * s2 * M_PI * 0.03f)) * vec4(p.xyz, 1.0f)).xyz;
+
+    /*vec3 p_t = vec3(p.x, cT * p.y - sT * p.z, sT * p.y + cT * p.z);
+    return vec3(p_t.x + sin(u_time * 12.0f) / 8.0f, p_t.y + cos(u_time * 10.0f) / 8.0f, p_t.z);*/
 }
 
 float sceneDistance(vec3 p) {
@@ -187,26 +228,31 @@ float sceneDistance(vec3 p) {
     p = (u_world_transform_inverse * vec4(p.xyz, 1.0f)).xyz;
 
     p.y += 1.125f;
-    p.x += 3.0f; //6.5f; //4.5f;
+    p.x += 4.0f;
 
     float d_delta = carveUp(p, 0.0f);
 
-    float d = sdH(p); // carveUp(p, sdH(p));
+    // 2 units wide
+    float d = sdH(floatAndWobble(p, 0.0f) + vec3(1, -1.5f, 0) * u_vanish); // carveUp(p, sdH(p));
 
-    p.x -= 2.0f;
-    float e_character = sdE(p); //carveUp(p, sdE(p));
+    p.x -= 2.5f; //2.0f;
+    // 2 units wide
+    float e_character = sdE(floatAndWobble(p, 3.0f) + vec3(-1, 1.2f, 0) * u_vanish); //carveUp(p, sdE(p));
     d = min(d, e_character);
 
-    p.x -= 1.5f;
-    float l_character_1 = sdL(p); //carveUp(p, sdL(p));
+    p.x -= 2.0f; // 1.5f;
+    // 1 unit wide
+    float l_character_1 = sdL(floatAndWobble(p, 0.3242f) + vec3(-0.4f, -1.2f, 0) * u_vanish); //carveUp(p, sdL(p));
     d = min(d, l_character_1);
 
-    p.x -= 1.0f;
-    float l_character_2 = sdL(p); //carveUp(p, sdL(p));
+    p.x -= 1.5f; //1.0f;
+    // 1 unit wide
+    float l_character_2 = sdL(floatAndWobble(p, 123.432f) + vec3(0.25f, 1.5f, 0) * u_vanish); //carveUp(p, sdL(p));
     d = min(d, l_character_2);
 
-    p.x -= 1.5f;
-    float o_character = sdO(p); //carveUp(p, sdO(p));
+    p.x -= 2.0f; //1.5f;
+    // 2 units wide
+    float o_character = sdO(floatAndWobble(p, 34.0f) + vec3(-2.5f, -1.5f, 0) * u_vanish); //carveUp(p, sdO(p));
     d = min(d, o_character);
 
     return d + d_delta;
@@ -237,9 +283,9 @@ float henyeyGreenstein(vec3 inVec, vec3 outVec) {
 }
 
 // For when our ray might need to go out and then in again
-vec2 calculateWobblyTransmittanceAndLuminance(vec3 entryPoint, vec3 rayDirection) {
+vec2 calculateWobblyTransmittanceAndLuminance(vec3 entryPoint, vec3 rayDirection, float a) {
     vec3 lightPosition = (u_light_transform * vec4(0, 0, -5, 1)).xyz;
-    float lightLuminance = 75.0f;
+    float lightLuminance = 75.0f * (1.0f - u_vanish);
 
     float totalLightEmitted = 0.0f;
     float transmittance = 1.0f;
@@ -249,6 +295,8 @@ vec2 calculateWobblyTransmittanceAndLuminance(vec3 entryPoint, vec3 rayDirection
 
     vec3 currentRayPosition = entryPoint;
 
+    int max_depth_steps = u_max_depth_steps - int(u_vanish * float(u_max_depth_steps));
+
     for(int i = 0; i < 10000; i++) {
         currentRayPosition += rayDirection * u_stepsize; // Small step to ensure we start inside the object
         float distanceToSurface = sceneDistance(currentRayPosition);
@@ -256,7 +304,7 @@ vec2 calculateWobblyTransmittanceAndLuminance(vec3 entryPoint, vec3 rayDirection
         // are we in the object?
         if(distanceToSurface < 0.0f) {
             totalDistance += u_stepsize;
-            transmittance *= exp(-u_stepsize * ABSORPTION);
+            transmittance *= exp(-u_stepsize * a);
 
             // Get density-weighted distance of ray from currentRayPosition to light
             vec3 lightDirection = normalize(lightPosition - currentRayPosition);
@@ -269,19 +317,19 @@ vec2 calculateWobblyTransmittanceAndLuminance(vec3 entryPoint, vec3 rayDirection
                 if(distanceToSurface2 < 0.0f) {
                     lightTravelDistance += u_stepsize;
                 }
-                if(j >= u_max_depth_steps)
+                if(j >= max_depth_steps)
                     break;
                 if(distanceToSurface2 > EXIT_DISTANCE) {
                     break; // Exit point found
                 }
             }
 
-            float lightReachingPoint = exp(-lightTravelDistance * ABSORPTION) * lightLuminance;
+            float lightReachingPoint = exp(-lightTravelDistance * a) * lightLuminance;
             //float isotropicPhase = (1.0f / (4.0f * M_PI));
             float henyeyGphase = henyeyGreenstein(-rayDirection, lightDirection);
             totalLightEmitted += lightReachingPoint * henyeyGphase * transmittance * u_stepsize;
         }
-        if(i >= u_max_depth_steps)
+        if(i >= max_depth_steps)
             break;
         if(distanceToSurface > EXIT_DISTANCE) {
             break; // Exit point found
@@ -320,7 +368,7 @@ float RayMarchMarkers(vec3 ro, vec3 rd) {
 
 void main() {
     vec3 ro = vec3(0, 0.0f, 10.0f);
-    float zoom = 2.5f;
+    float zoom = 2.5f + u_vanish * 0.5f;
     vec3 rd = normalize(vec3(v_position.x * (u_resolution.x / u_resolution.y) / zoom, v_position.y / zoom, -1));
 
     float d = RayMarch(ro, rd);
@@ -334,9 +382,9 @@ void main() {
     float yMouseGradient = (u_mousepos.y / 2.0f) + 0.5f;
 
     //float yMouseGradient = 1.0f;
-
-    vec3 skyColorStart = yMouseGradient * vec3(0.54f, 0.90f, 0.99f) + (1.0f - yMouseGradient) * vec3(0.56f, 0.52f, 0.68f);
-    vec3 skyColorEnd = yMouseGradient * vec3(0.05f, 0.33f, 0.71f) + (1.0f - yMouseGradient) * vec3(0.99f, 0.69f, 0.59f);
+//
+    vec3 skyColorStart = yMouseGradient * vec3(0.05f, 0.33f, 0.71f) + (1.0f - yMouseGradient) * vec3(0.56f, 0.52f, 0.68f);
+    vec3 skyColorEnd = yMouseGradient * vec3(0.54f, 0.90f, 0.99f) + (1.0f - yMouseGradient) * vec3(0.99f, 0.69f, 0.59f);
     vec3 skyColour = yGradient * skyColorStart + (1.0f - yGradient) * skyColorEnd;
 
     fragColor = vec4(skyColour, 1.0f);
@@ -344,12 +392,16 @@ void main() {
     if(d <= 20.0f) {
         vec3 p = ro + rd * d;
 
-        vec2 vals = calculateWobblyTransmittanceAndLuminance(p, rd);
+        vec2 vals = calculateWobblyTransmittanceAndLuminance(p, rd, (1.0f - u_vanish) * ABSORPTION);
+        //vec2 vals = calculateWobblyTransmittanceAndLuminance(p, rd, ABSORPTION);
         float t = vals.x;
         float l = vals.y + 0.4f;
 
         cloudColour = yMouseGradient * cloudColour + (1.0f - yMouseGradient) * sunsetTint2;
-        cloudColour = cloudColour * l;
+        cloudColour = cloudColour * (l + u_vanish);
+
+        float fade = min(u_vanish * 1.2f, 1.0f);
+        cloudColour = fade * skyColour + (1.0f - fade) * cloudColour;
         fragColor = vec4(t * skyColour + (1.0f - t) * cloudColour, 1.0f);
     }
 
