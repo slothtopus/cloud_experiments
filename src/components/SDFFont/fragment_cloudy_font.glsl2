@@ -1,0 +1,356 @@
+#version 300 es
+
+precision mediump float;
+precision lowp sampler3D;
+
+  #define MAX_STEPS 300
+  #define MAX_DIST 100.
+  #define SURF_DIST .01
+  #define ABSORPTION 3.0f
+  #define M_PI 3.1415
+
+in vec2 v_position;
+
+uniform vec2 u_resolution;
+uniform mat4 u_world_transform_inverse;
+uniform vec2 u_mousepos;
+uniform mat4 u_light_transform;
+uniform float u_stepsize;
+uniform float u_time;
+uniform int u_max_depth_steps;
+
+uniform sampler3D uTexture;
+
+out vec4 fragColor; // Declare output fragment color
+
+float sdSphere(vec3 p, float s) {
+    return length(p) - s;
+}
+
+float sdBox(vec3 p, vec3 b) {
+    vec3 q = abs(p) - b;
+    return length(max(q, 0.0f)) + min(max(q.x, max(q.y, q.z)), 0.0f);
+}
+
+float sdVerticalCapsule(vec3 p, float h, float r) {
+    p.y -= clamp(p.y, 0.0f, h);
+    return length(p) - r;
+}
+
+float sdTorus(vec3 p, vec2 t) {
+    vec2 q = vec2(length(p.xz) - t.x, p.y);
+    return length(q) - t.y;
+}
+
+// ra = radius,
+// rb = thickness
+// sc = vec2(sin(an), cos(an))
+// where an = PI is a full circle
+float sdCappedTorus(vec3 p, vec2 sc, float ra, float rb) {
+    p.x = abs(p.x);
+    float k = (sc.y * p.x > sc.x * p.y) ? dot(p.xy, sc) : length(p.xy);
+    return sqrt(dot(p, p) + ra * ra - 2.0f * ra * k) - rb;
+}
+
+// ra = thickness,
+// rb = radius
+// h = height of legs
+// sc = vec2(sin(an), cos(an))
+// where an = PI is a full circle
+float sdElongatedArch(vec3 p, float ra, float rb, float h) {
+    p.y -= clamp(p.y, 0.0f, h);
+    float an = M_PI / 2.0f;
+    return sdCappedTorus(p, vec2(sin(an), cos(an)), ra, rb);
+}
+
+float opSmoothUnion(float d1, float d2, float k) {
+    float h = clamp(0.5f + 0.5f * (d2 - d1) / k, 0.0f, 1.0f);
+    return mix(d2, d1, h) - k * h * (1.0f - h);
+}
+
+float sdH(vec3 p) {
+    float r = 0.6f;   // inner radius of arch
+    float t = 0.25f; // thickness
+    float l = 0.95f;   // leg length
+    float h = 2.75f; // left line height
+
+    p.y -= t / 2.0f;
+
+    vec3 p_cap = vec3(p.x + r, p.y - t / 2.0f, p.z);
+    float d = sdVerticalCapsule(p_cap, h, t);
+
+    vec3 p_arch = vec3(p.x, p.y - (t / 2.0f), p.z);
+    float arch = sdElongatedArch(p_arch, r, t, l);
+    d = min(d, arch);
+
+    return d;
+}
+
+float sdE(vec3 p) {
+
+    float r = 0.6f;   // inner radius of e
+    float t = 0.25f;  // thickness of line
+    float ls = 0.35f;  // left stretch
+    float rs = 0.1f;   // right stretch
+    float bj = 0.075f; // bottom jut
+
+    p.y -= r + t;
+
+  // top torus elongated on left only
+    vec3 p_tor1 = vec3(p.x, p.y - ls, p.z);
+    if(p_tor1.x < 0.0f) {
+        p_tor1.y += ls;
+        p_tor1.y -= clamp(p_tor1.y, 0.0f, ls);
+    } else {
+    //p_tor1.y += 0.35f;
+        p_tor1.y += rs;
+        p_tor1.y -= clamp(p_tor1.y, 0.0f, rs);
+    }
+    float an1 = M_PI * 0.5f;
+    float d = sdCappedTorus(p_tor1, vec2(sin(an1), cos(an1)), r, t);
+
+  // bottom torus
+    float an2_extent = 0.4f;
+    float rot2 = 0.5f + an2_extent;
+    float sT = sin(-M_PI * rot2);
+    float cT = cos(-M_PI * rot2);
+    vec3 p_tor2 = p;
+    p_tor2.x -= clamp(p_tor2.x, 0.0f, bj);
+    p_tor2 = vec3(cT * p_tor2.x - sT * p_tor2.y, sT * p_tor2.x + cT * p_tor2.y, p_tor2.z);
+    float an2 = M_PI * an2_extent;
+    float tor2 = sdCappedTorus(p_tor2, vec2(sin(an2), cos(an2)), r, t);
+    d = min(d, tor2);
+
+  // horizontal capsule
+    float sT2 = sin(M_PI * 0.5f);
+    float cT2 = cos(M_PI * 0.5f);
+
+    vec3 p_cap = vec3(cT2 * p.x - sT2 * p.y, sT2 * p.x + cT2 * p.y, p.z);
+    float l = r + (2.0f * t); // length
+    p_cap = vec3(p_cap.x + (ls - rs), p_cap.y + l / 2.0f, p_cap.z);
+    float cap = sdVerticalCapsule(p_cap, l, t);
+    d = min(d, cap);
+
+    return d;
+}
+
+float sdL(vec3 p) {
+    float t = 0.25f; // thickness
+    float l = 2.75f;   // height
+
+    p.y -= t;
+
+    float cap = sdVerticalCapsule(p, l, t);
+    return cap;
+}
+
+float sdO(vec3 p) {
+    float t = 0.25f; // thickness
+    float r = 0.6f; // inner radius
+    float s = 0.35f; // stretch 
+
+    float sT = sin(M_PI * 0.5f);
+    float cT = cos(M_PI * 0.5f);
+
+  //p.y -= t + r;
+    p.y -= s + t * 2.0f;
+    p.y -= clamp(p.y, 0.0f, s);
+    vec3 p_tor = vec3(p.x, cT * p.y - sT * p.z, sT * p.y + cT * p.z);
+
+    float tor = sdTorus(p_tor, vec2(r, t));
+    return tor;
+}
+
+float markerSphereDistance(vec3 p) {
+    vec3 p_repeated = p;
+    p_repeated.x = p.x - round(p.x);
+    p_repeated.y = p.y - round(p.y);
+    return sdSphere(p_repeated, 0.05f);
+}
+
+float getNoise(vec3 p) {
+    return texture(uTexture, p).r;
+    //return perlin3d(p, 10.0f, 123.4f) + 0.75f;
+}
+
+float carveUp(vec3 p, float d) {
+    # if 1
+    float textureValue = getNoise(p / 2.0f + vec3(sin(u_time / 3.0f), cos(u_time / 2.123f), -sin(u_time)));
+    # else
+    float textureValue = getNoise(p / 15.0f);
+    # endif
+    return d - textureValue * 0.175f;
+}
+
+float sceneDistance(vec3 p) {
+
+    p = (u_world_transform_inverse * vec4(p.xyz, 1.0f)).xyz;
+
+    p.y += 1.125f;
+    p.x += 3.0f; //6.5f; //4.5f;
+
+    float d_delta = carveUp(p, 0.0f);
+
+    float d = sdH(p); // carveUp(p, sdH(p));
+
+    p.x -= 2.0f;
+    float e_character = sdE(p); //carveUp(p, sdE(p));
+    d = min(d, e_character);
+
+    p.x -= 1.5f;
+    float l_character_1 = sdL(p); //carveUp(p, sdL(p));
+    d = min(d, l_character_1);
+
+    p.x -= 1.0f;
+    float l_character_2 = sdL(p); //carveUp(p, sdL(p));
+    d = min(d, l_character_2);
+
+    p.x -= 1.5f;
+    float o_character = sdO(p); //carveUp(p, sdO(p));
+    d = min(d, o_character);
+
+    return d + d_delta;
+}
+
+vec3 GetNormal(vec3 p) {
+    float d = sceneDistance(p);
+    vec2 e = vec2(.01f, 0);
+
+    vec3 n = d - vec3(sceneDistance(p - e.xyy), sceneDistance(p - e.yxy), sceneDistance(p - e.yyx));
+
+    return normalize(n);
+}
+
+float GetLight(vec3 p, vec3 lightPos) {
+    vec3 l = normalize(lightPos - p);
+    vec3 n = GetNormal(p);
+
+    float dif = clamp(dot(n, l), 0.f, 1.f);
+    return dif;
+}
+
+float henyeyGreenstein(vec3 inVec, vec3 outVec) {
+    float g = 0.4f;
+    float g2 = g * g;
+    float theta = acos(dot(inVec, outVec) / (length(inVec) + length(outVec)));
+    return (1.0f - g2) / (4.0f * M_PI * pow(1.0f + g2 + 2.0f * g * cos(theta), 1.5f));
+}
+
+// For when our ray might need to go out and then in again
+vec2 calculateWobblyTransmittanceAndLuminance(vec3 entryPoint, vec3 rayDirection) {
+    vec3 lightPosition = (u_light_transform * vec4(0, 0, -5, 1)).xyz;
+    float lightLuminance = 75.0f;
+
+    float totalLightEmitted = 0.0f;
+    float transmittance = 1.0f;
+
+    float EXIT_DISTANCE = 0.5f;
+    float totalDistance = 0.0f;
+
+    vec3 currentRayPosition = entryPoint;
+
+    for(int i = 0; i < 10000; i++) {
+        currentRayPosition += rayDirection * u_stepsize; // Small step to ensure we start inside the object
+        float distanceToSurface = sceneDistance(currentRayPosition);
+
+        // are we in the object?
+        if(distanceToSurface < 0.0f) {
+            totalDistance += u_stepsize;
+            transmittance *= exp(-u_stepsize * ABSORPTION);
+
+            // Get density-weighted distance of ray from currentRayPosition to light
+            vec3 lightDirection = normalize(lightPosition - currentRayPosition);
+            vec3 currentLightPosition = currentRayPosition;
+            float lightTravelDistance = 0.0f;
+
+            for(int j = 0; j < 10000; j++) {
+                currentLightPosition += lightDirection * u_stepsize;
+                float distanceToSurface2 = sceneDistance(currentLightPosition);
+                if(distanceToSurface2 < 0.0f) {
+                    lightTravelDistance += u_stepsize;
+                }
+                if(j >= u_max_depth_steps)
+                    break;
+                if(distanceToSurface2 > EXIT_DISTANCE) {
+                    break; // Exit point found
+                }
+            }
+
+            float lightReachingPoint = exp(-lightTravelDistance * ABSORPTION) * lightLuminance;
+            //float isotropicPhase = (1.0f / (4.0f * M_PI));
+            float henyeyGphase = henyeyGreenstein(-rayDirection, lightDirection);
+            totalLightEmitted += lightReachingPoint * henyeyGphase * transmittance * u_stepsize;
+        }
+        if(i >= u_max_depth_steps)
+            break;
+        if(distanceToSurface > EXIT_DISTANCE) {
+            break; // Exit point found
+        }
+        if(abs(totalDistance) >= MAX_DIST)
+            break;
+    }
+
+    return vec2(transmittance, totalLightEmitted);
+    //return vec2(exp(-totalDistance * ABSORPTION), totalLightEmitted);
+}
+
+float RayMarch(vec3 ro, vec3 rd) {
+    float dO = 0.f;
+    for(int i = 0; i < MAX_STEPS; i++) {
+        vec3 p = ro + rd * dO;
+        float dS = sceneDistance(p);
+        dO += dS;
+        if(dO > MAX_DIST || dS < SURF_DIST)
+            break;
+    }
+    return dO;
+}
+
+float RayMarchMarkers(vec3 ro, vec3 rd) {
+    float dO = 0.f;
+    for(int i = 0; i < MAX_STEPS; i++) {
+        vec3 p = ro + rd * dO;
+        float dS = markerSphereDistance(p);
+        dO += dS;
+        if(dO > MAX_DIST || dS < SURF_DIST)
+            break;
+    }
+    return dO;
+}
+
+void main() {
+    vec3 ro = vec3(0, 0.0f, 10.0f);
+    float zoom = 2.5f;
+    vec3 rd = normalize(vec3(v_position.x * (u_resolution.x / u_resolution.y) / zoom, v_position.y / zoom, -1));
+
+    float d = RayMarch(ro, rd);
+
+    vec3 cloudColour = vec3(1, 1, 1);
+    vec3 shadowColour = vec3(0.533f, 0.639f, 0.804f);
+    vec3 sunsetTint = vec3(0.97f, 0.42f, 0.26f);
+    vec3 sunsetTint2 = vec3(0.91f, 0.67f, 0.39f);
+
+    float yGradient = (v_position.y / 2.0f) + 0.5f;
+    float yMouseGradient = (u_mousepos.y / 2.0f) + 0.5f;
+
+    //float yMouseGradient = 1.0f;
+
+    vec3 skyColorStart = yMouseGradient * vec3(0.54f, 0.90f, 0.99f) + (1.0f - yMouseGradient) * vec3(0.56f, 0.52f, 0.68f);
+    vec3 skyColorEnd = yMouseGradient * vec3(0.05f, 0.33f, 0.71f) + (1.0f - yMouseGradient) * vec3(0.99f, 0.69f, 0.59f);
+    vec3 skyColour = yGradient * skyColorStart + (1.0f - yGradient) * skyColorEnd;
+
+    fragColor = vec4(skyColour, 1.0f);
+
+    if(d <= 20.0f) {
+        vec3 p = ro + rd * d;
+
+        vec2 vals = calculateWobblyTransmittanceAndLuminance(p, rd);
+        float t = vals.x;
+        float l = vals.y + 0.4f;
+
+        cloudColour = yMouseGradient * cloudColour + (1.0f - yMouseGradient) * sunsetTint2;
+        cloudColour = cloudColour * l;
+        fragColor = vec4(t * skyColour + (1.0f - t) * cloudColour, 1.0f);
+    }
+
+}

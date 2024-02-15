@@ -28,6 +28,7 @@
     <router-link to="/lit-beers-carved-cube">Lit Beers Carved Cube</router-link>
     <router-link to="/template-test">Template Test</router-link>
     <router-link to="/sdf-font">SDF Font</router-link>
+    <router-link to="/cloudy-sdf-font">Cloudy SDF Font</router-link>
   </div>
 </template>
 

@@ -26,6 +26,7 @@ import BeersCarvedCube from '@/components/CarvedCube/BeersCarvedCube.vue'
 import LitBeersCarvedCube from '@/components/CarvedCube/LitBeersCarvedCube.vue'
 import TemplateTest from '@/components/TemplateTest/TemplateTest.vue'
 import SDFFont from '@/components/SDFFont/SDFFont.vue'
+import CloudySDFFont from '@/components/SDFFont/CloudySDFFont.vue'
 
 import HomePage from '@/components/HomePage.vue'
 
@@ -60,7 +61,8 @@ const routes = [
   { path: '/beers-carved-cube', component: BeersCarvedCube },
   { path: '/lit-beers-carved-cube', component: LitBeersCarvedCube },
   { path: '/template-test', component: TemplateTest },
-  { path: '/sdf-font', component: SDFFont }
+  { path: '/sdf-font', component: SDFFont },
+  { path: '/cloudy-sdf-font', component: CloudySDFFont }
   //{ path: '/', component: LitBeersCarvedCube }
 ]
 
