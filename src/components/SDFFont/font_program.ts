@@ -1,5 +1,13 @@
 import { createProgram, createShader } from '../../lib/webgl'
 
+import {
+  matrixToColumnMajorArray,
+  createTranslationMatrix4,
+  createRotationMatrix4,
+  multiplyMatrix4,
+  inverseMatrix4
+} from '@/lib/lib'
+
 export const buildProgram = async (
   gl: WebGL2RenderingContext,
   VERTEX_SHADER: string,
@@ -32,7 +40,7 @@ export const buildProgram = async (
   const stepSizeUniformLocation = gl.getUniformLocation(program, 'u_stepsize')
   const depthStepsLocation = gl.getUniformLocation(program, 'u_max_depth_steps')
   const boxTransformLocation = gl.getUniformLocation(program, 'u_box_transform')
-  const boxTransformInverseLocation = gl.getUniformLocation(program, 'u_box_transform_inverse')
+  const worldTransformInverseLocation = gl.getUniformLocation(program, 'u_world_transform_inverse')
   const lightTransformLocation = gl.getUniformLocation(program, 'u_light_transform')
   const mousePosLocation = gl.getUniformLocation(program, 'u_mousepos')
   const timeLocation = gl.getUniformLocation(program, 'u_time')
@@ -42,7 +50,7 @@ export const buildProgram = async (
     bufferSetups,
     scrollUniformLocation,
     boxTransformLocation,
-    boxTransformInverseLocation,
+    worldTransformInverseLocation,
     lightTransformLocation,
     resolutionUniformLocation,
     stepSizeUniformLocation,
@@ -56,15 +64,32 @@ export const draw = (
   gl: WebGL2RenderingContext,
   {
     canvasWidth,
-    canvasHeight
+    canvasHeight,
+    draggedMouseX,
+    draggedMouseY
   }: {
     canvasWidth: number
     canvasHeight: number
+    draggedMouseX: number
+    draggedMouseY: number
   },
-  { program, bufferSetups, resolutionUniformLocation }: Awaited<ReturnType<typeof buildProgram>>
+  {
+    program,
+    bufferSetups,
+    resolutionUniformLocation,
+    worldTransformInverseLocation
+  }: Awaited<ReturnType<typeof buildProgram>>
 ) => {
   gl.useProgram(program)
   bufferSetups.forEach((b) => b())
   gl.uniform2fv(resolutionUniformLocation, [canvasWidth, canvasHeight])
+
+  const m = createRotationMatrix4(draggedMouseY * Math.PI, draggedMouseX * -Math.PI, 0)
+  gl.uniformMatrix4fv(
+    worldTransformInverseLocation,
+    false,
+    matrixToColumnMajorArray(inverseMatrix4(m))
+  )
+
   gl.drawArrays(gl.TRIANGLES, 0, 6)
 }

@@ -28,12 +28,14 @@ onMounted(async () => {
   const animate = (delta: number) => {
     //const t = delta / 10000
 
-    const { canvasWidth, canvasHeight } = controls.value
+    const { canvasWidth, canvasHeight, draggedMouseX, draggedMouseY } = controls.value
     draw(
       gl,
       {
         canvasWidth,
-        canvasHeight
+        canvasHeight,
+        draggedMouseX,
+        draggedMouseY
       },
       cubeProgramParams
     )
