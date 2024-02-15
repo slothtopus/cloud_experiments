@@ -1,0 +1,247 @@
+#version 300 es
+
+precision mediump float;
+precision lowp sampler3D;
+
+  #define MAX_STEPS 100
+  #define MAX_DIST 100.
+  #define SURF_DIST .01
+  #define M_PI 3.1415
+
+in vec2 v_position;
+
+uniform vec2 u_resolution;
+uniform vec2 u_mousepos;
+
+out vec4 fragColor; // Declare output fragment color
+
+mat4 transformationMatrix(vec3 translation, vec3 rotation) {
+  mat4 translationMatrix = mat4(1.0f); // Identity matrix
+  translationMatrix[3][0] = translation.x;
+  translationMatrix[3][1] = translation.y;
+  translationMatrix[3][2] = translation.z;
+
+  // Create rotation matrices for each axis
+  float cosX = cos(rotation.x);
+  float sinX = sin(rotation.x);
+  mat4 rotationX = mat4(1.0f, 0.0f, 0.0f, 0.0f, 0.0f, cosX, -sinX, 0.0f, 0.0f, sinX, cosX, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+
+  float cosY = cos(rotation.y);
+  float sinY = sin(rotation.y);
+  mat4 rotationY = mat4(cosY, 0.0f, sinY, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, -sinY, 0.0f, cosY, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+
+  float cosZ = cos(rotation.z);
+  float sinZ = sin(rotation.z);
+  mat4 rotationZ = mat4(cosZ, -sinZ, 0.0f, 0.0f, sinZ, cosZ, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+
+    // Combine the matrices
+  mat4 transformationMatrix = rotationX * rotationY * rotationZ * translationMatrix;
+
+  return transformationMatrix;
+}
+
+mat4 invTransformationMatrix(vec3 translation, vec3 rotation) {
+  return transformationMatrix(-translation, -rotation);
+}
+
+float sdSphere(vec3 p, float s) {
+  return length(p) - s;
+}
+
+float sdBox(vec3 p, vec3 b) {
+  vec3 q = abs(p) - b;
+  return length(max(q, 0.0f)) + min(max(q.x, max(q.y, q.z)), 0.0f);
+}
+
+float sdVerticalCapsule(vec3 p, float h, float r) {
+  p.y -= clamp(p.y, 0.0f, h);
+  return length(p) - r;
+}
+
+// ra = radius,
+// rb = thickness
+// sc = vec2(sin(an), cos(an))
+// where an = PI is a full circle
+float sdCappedTorus(vec3 p, vec2 sc, float ra, float rb) {
+  p.x = abs(p.x);
+  float k = (sc.y * p.x > sc.x * p.y) ? dot(p.xy, sc) : length(p.xy);
+  return sqrt(dot(p, p) + ra * ra - 2.0f * ra * k) - rb;
+}
+
+// ra = thickness,
+// rb = radius
+// h = height of legs
+// sc = vec2(sin(an), cos(an))
+// where an = PI is a full circle
+float sdElongatedArch(vec3 p, float ra, float rb, float h) {
+  p.y -= clamp(p.y, 0.0f, h);
+  float an = M_PI / 2.0f;
+  return sdCappedTorus(p, vec2(sin(an), cos(an)), ra, rb);
+}
+
+float opSmoothUnion(float d1, float d2, float k) {
+  float h = clamp(0.5f + 0.5f * (d2 - d1) / k, 0.0f, 1.0f);
+  return mix(d2, d1, h) - k * h * (1.0f - h);
+}
+
+float sdH(vec3 p) {
+  float r = 0.6f;   // inner radius of arch
+  float t = 0.25f; // thickness
+  float l = 0.95f;   // leg length
+  float h = 2.75f; // left line height
+
+  p.y -= t / 2.0f;
+
+  vec3 p_cap = vec3(p.x + r, p.y - t / 2.0f, p.z);
+  float d = sdVerticalCapsule(p_cap, h, t);
+
+  vec3 p_arch = vec3(p.x, p.y - (t / 2.0f), p.z);
+  float arch = sdElongatedArch(p_arch, r, t, l);
+  d = min(d, arch);
+
+  return d;
+}
+
+float sdE(vec3 p) {
+
+  float r = 0.6f;   // inner radius of e
+  float t = 0.25f;  // thickness of line
+  float ls = 0.35f;  // left stretch
+  float rs = 0.1f;   // right stretch
+  float bj = 0.075f; // bottom jut
+
+  p.y -= r + t;
+
+  // top torus elongated on left only
+  vec3 p_tor1 = vec3(p.x, p.y - ls, p.z);
+  if(p_tor1.x < 0.0f) {
+    p_tor1.y += ls;
+    p_tor1.y -= clamp(p_tor1.y, 0.0f, ls);
+  } else {
+    //p_tor1.y += 0.35f;
+    p_tor1.y += rs;
+    p_tor1.y -= clamp(p_tor1.y, 0.0f, rs);
+  }
+  float an1 = M_PI * 0.5f;
+  float d = sdCappedTorus(p_tor1, vec2(sin(an1), cos(an1)), r, t);
+
+  // bottom torus
+  float an2_extent = 0.4f;
+  float rot2 = 0.5f + an2_extent;
+  float sT = sin(-M_PI * rot2);
+  float cT = cos(-M_PI * rot2);
+  vec3 p_tor2 = p;
+  p_tor2.x -= clamp(p_tor2.x, 0.0f, bj);
+  p_tor2 = vec3(cT * p_tor2.x - sT * p_tor2.y, sT * p_tor2.x + cT * p_tor2.y, p_tor2.z);
+  float an2 = M_PI * an2_extent;
+  float tor2 = sdCappedTorus(p_tor2, vec2(sin(an2), cos(an2)), r, t);
+  d = min(d, tor2);
+
+  // horizontal capsule
+  float sT2 = sin(M_PI * 0.5f);
+  float cT2 = cos(M_PI * 0.5f);
+
+  vec3 p_cap = vec3(cT2 * p.x - sT2 * p.y, sT2 * p.x + cT2 * p.y, p.z);
+  float l = r + (2.0f * t); // length
+  p_cap = vec3(p_cap.x + (ls - rs), p_cap.y + l / 2.0f, p_cap.z);
+  float cap = sdVerticalCapsule(p_cap, l, t);
+  d = min(d, cap);
+
+  return d;
+}
+
+float markerSphereDistance(vec3 p) {
+
+    /*vec3 q = p - s*round(p/s);
+    return primitive( q );*/
+
+  vec3 p_repeated = p;
+  p_repeated.x = p.x - round(p.x);
+  p_repeated.y = p.y - round(p.y);
+  return sdSphere(p_repeated, 0.05f);
+
+  /*float d = sdSphere(vec3(p.x + 1.0f, p.yz), 0.1f);
+
+  float sphere2 = sdSphere(vec3(p.xy, p.z), 0.1f);
+  d = min(d, sphere2);
+
+  float sphere3 = sdSphere(vec3(p.x - 1.0f, p.yz), 0.1f);
+  d = min(d, sphere3);
+
+  return d;*/
+}
+
+float sceneDistance(vec3 p) {
+  float d = sdE(p);
+
+  float h_character = sdH(vec3(p.x + 2.0f, p.yz));
+  d = min(d, h_character);
+
+  return d;
+}
+
+vec3 GetNormal(vec3 p) {
+  float d = sceneDistance(p);
+  vec2 e = vec2(.01f, 0);
+
+  vec3 n = d - vec3(sceneDistance(p - e.xyy), sceneDistance(p - e.yxy), sceneDistance(p - e.yyx));
+
+  return normalize(n);
+}
+
+float GetLight(vec3 p, vec3 lightPos) {
+  vec3 l = normalize(lightPos - p);
+  vec3 n = GetNormal(p);
+
+  float dif = clamp(dot(n, l), 0.f, 1.f);
+  return dif;
+}
+
+float RayMarch(vec3 ro, vec3 rd) {
+  float dO = 0.f;
+  for(int i = 0; i < MAX_STEPS; i++) {
+    vec3 p = ro + rd * dO;
+    float dS = sceneDistance(p);
+    dO += dS;
+    if(dO > MAX_DIST || dS < SURF_DIST)
+      break;
+  }
+  return dO;
+}
+
+float RayMarchMarkers(vec3 ro, vec3 rd) {
+  float dO = 0.f;
+  for(int i = 0; i < MAX_STEPS; i++) {
+    vec3 p = ro + rd * dO;
+    float dS = markerSphereDistance(p);
+    dO += dS;
+    if(dO > MAX_DIST || dS < SURF_DIST)
+      break;
+  }
+  return dO;
+}
+
+void main() {
+  fragColor = vec4(0, 0, 0, 1.0f);
+
+  vec3 ro = vec3(0, 1.0f, 10.0f);
+  float zoom = 3.0f;
+  vec3 rd = normalize(vec3(v_position.x * (u_resolution.x / u_resolution.y) / zoom, v_position.y / zoom, -1));
+
+  float d2 = RayMarchMarkers(ro, rd);
+  if(d2 <= 20.0f) {
+    vec3 p = ro + rd * d2;
+    if(length(p.xy) < 0.1f) {
+      fragColor = vec4(1, 0, 0, 1);
+    } else {
+      fragColor = vec4(0, 1, 0, 1);
+    }
+    return;
+  }
+
+  float d1 = RayMarch(ro, rd);
+  if(d1 <= 20.0f) {
+    float l = GetLight(ro + rd * d1, vec3(0, 0, 10));
+    fragColor = vec4(l * vec3(1, 1, 1), 1.f);
+  }
+}

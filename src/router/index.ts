@@ -24,6 +24,8 @@ import LitPerlinBeerCube2 from '@/components/BeersLawCube/LitPerlinBeerCube2.vue
 import CarvedCube from '@/components/CarvedCube/CarvedCube.vue'
 import BeersCarvedCube from '@/components/CarvedCube/BeersCarvedCube.vue'
 import LitBeersCarvedCube from '@/components/CarvedCube/LitBeersCarvedCube.vue'
+import TemplateTest from '@/components/TemplateTest/TemplateTest.vue'
+import SDFFont from '@/components/SDFFont/SDFFont.vue'
 
 import HomePage from '@/components/HomePage.vue'
 
@@ -56,8 +58,10 @@ const routes = [
   { path: '/lit-perlin-beer-cube2', component: LitPerlinBeerCube2 },
   { path: '/carved-cube', component: CarvedCube },
   { path: '/beers-carved-cube', component: BeersCarvedCube },
-  { path: '/lit-beers-carved-cube', component: LitBeersCarvedCube }
-  //{ path: '/', component: LayeredClouds }
+  { path: '/lit-beers-carved-cube', component: LitBeersCarvedCube },
+  { path: '/template-test', component: TemplateTest },
+  { path: '/sdf-font', component: SDFFont }
+  //{ path: '/', component: LitBeersCarvedCube }
 ]
 
 export const router = createRouter({

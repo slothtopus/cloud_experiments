@@ -1,0 +1,23 @@
+#version 300 es
+
+precision mediump float;
+precision lowp sampler3D;
+
+  #define M_PI 3.1415
+
+in vec2 v_position;
+
+uniform vec2 u_mousepos;
+
+out vec4 fragColor; // Declare output fragment color
+
+void main() {
+    float yGradient = (v_position.y / 2.0f) + 0.5f;
+    float yMouseGradient = (u_mousepos.y / 2.0f) + 0.5f;
+
+    vec3 skyColorStart = yMouseGradient * vec3(0.54f, 0.90f, 0.99f) + (1.0f - yMouseGradient) * vec3(0.56f, 0.52f, 0.68f);
+    vec3 skyColorEnd = yMouseGradient * vec3(0.05f, 0.33f, 0.71f) + (1.0f - yMouseGradient) * vec3(0.99f, 0.69f, 0.59f);
+    vec3 skyColour = yGradient * skyColorStart + (1.0f - yGradient) * skyColorEnd;
+
+    fragColor = vec4(skyColour, 1.0f);
+}

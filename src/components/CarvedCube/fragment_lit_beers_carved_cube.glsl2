@@ -6,7 +6,7 @@ precision lowp sampler3D;
   #define MAX_STEPS 300
   #define MAX_DIST 100.
   #define SURF_DIST .01
-  #define ABSORPTION 0.35f
+  #define ABSORPTION 0.45f
   #define M_PI 3.1415
 
 in vec2 v_position;
@@ -131,7 +131,7 @@ float sceneDistanceTransformed(vec3 p) {
     //return carveUp(p_transformed.xyz, sdBox(p_transformed.xyz, vec3(4, 2, 2)));
     //return sdBox(p_transformed.xyz, vec3(2, 2, 2));
     //return carveUp(p_transformed.xyz, sdEllipsoid(p_transformed.xyz, vec3(2, 2, 2)));
-    return carveUp(p_transformed.xyz, min(sdEllipsoid(p_transformed.xyz, vec3(5, 2, 2)), sdEllipsoid(p_transformed.xyz - vec3(0, 1, 0), vec3(2.5f, 2, 2))));
+    return carveUp(p_transformed.xyz, min(sdEllipsoid(p_transformed.xyz, vec3(5, 2, 2)), sdEllipsoid(p_transformed.xyz - vec3(0, 1, 1), vec3(2.5f, 2, 2))));
 }
 
 vec3 GetNormal(vec3 p) {
@@ -172,7 +172,7 @@ float calculateThickness(vec3 entryPoint, vec3 rayDirection) {
 }
 
 float henyeyGreenstein(vec3 inVec, vec3 outVec) {
-    float g = 0.25f;
+    float g = 0.5f;
     float g2 = g * g;
     float theta = acos(dot(inVec, outVec) / (length(inVec) + length(outVec)));
     return (1.0f - g2) / (4.0f * M_PI * pow(1.0f + g2 + 2.0f * g * cos(theta), 1.5f));
@@ -181,12 +181,12 @@ float henyeyGreenstein(vec3 inVec, vec3 outVec) {
 // For when our ray might need to go out and then in again
 vec2 calculateWobblyTransmittanceAndLuminance(vec3 entryPoint, vec3 rayDirection) {
     vec3 lightPosition = (u_light_transform * vec4(0, 0, -50, 1)).xyz;
-    float lightLuminance = 5.0f;
+    float lightLuminance = 10.0f;
 
     float totalLightEmitted = 0.0f;
     float transmittance = 1.0f;
 
-    float EXIT_DISTANCE = 3.0f;
+    float EXIT_DISTANCE = 2.0f;
     float totalDistance = 0.0f;
 
     vec3 currentRayPosition = entryPoint;
