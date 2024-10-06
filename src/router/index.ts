@@ -27,10 +27,11 @@ import LitBeersCarvedCube from '@/components/CarvedCube/LitBeersCarvedCube.vue'
 import TemplateTest from '@/components/TemplateTest/TemplateTest.vue'
 import SDFFont from '@/components/SDFFont/SDFFont.vue'
 import CloudySDFFont from '@/components/SDFFont/CloudySDFFont.vue'
+import FBMBackground from '@/components/FBMBackground/FBMBackground.vue'
 
 import HomePage from '@/components/HomePage.vue'
 
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 
 const routes = [
   { path: '/', component: HomePage },
@@ -62,12 +63,13 @@ const routes = [
   { path: '/lit-beers-carved-cube', component: LitBeersCarvedCube },
   { path: '/template-test', component: TemplateTest },
   { path: '/sdf-font', component: SDFFont },
-  { path: '/cloudy-sdf-font', component: CloudySDFFont }
+  { path: '/cloudy-sdf-font', component: CloudySDFFont },
+  { path: '/fbm-background', component: FBMBackground }
   //{ path: '/', component: CloudySDFFont }
 ]
 
 export const router = createRouter({
   // 4. Provide the history implementation to use. We are using the hash history for simplicity here.
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes
 })

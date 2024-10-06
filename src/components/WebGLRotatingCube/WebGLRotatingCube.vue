@@ -105,7 +105,7 @@ onMounted(() => {
   requestAnimationFrame(animate)
 })
 
-const zDistanceAdjust = ref(1)
+const zDistanceAdjust = ref(100)
 </script>
 
 <template>

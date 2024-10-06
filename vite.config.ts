@@ -6,6 +6,7 @@ import plainText from 'vite-plugin-plain-text'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: '/cloud_experiments/',
   plugins: [vue(), plainText([/\.glsl2?$/], { namedExport: false })],
   resolve: {
     alias: {

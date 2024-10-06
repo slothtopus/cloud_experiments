@@ -1,0 +1,97 @@
+#version 300 es
+
+precision mediump float;
+precision lowp sampler3D;
+
+  #define M_PI 3.1415
+
+in vec2 v_position;
+
+uniform vec2 u_mousepos;
+uniform vec2 u_resolution;
+uniform float u_time;
+uniform float u_scroll_pct;
+
+uniform sampler2D u_image0;
+uniform sampler2D u_image1;
+
+out vec4 fragColor; // Declare output fragment color
+
+float cubicPulse(float c, float w, float x) {
+  x = abs(x - c);
+  if(x > w)
+    return 0.0f;
+  x /= w;
+  return 1.0f - x * x * (3.0f - 2.0f * x);
+}
+
+float sunDisc(vec2 uv, vec2 sunCentre) {
+  uv = uv - sunCentre;
+  float l = length(uv);
+
+  /*float theta = acos(uv.x / l);
+  float i1 = fract(theta / 2.0f * M_PI);
+  float i2 = fract(theta / 2.0f * M_PI);
+  if(uv.y < 0.0f) {
+    i1 = 1.0f - i1;
+    i2 = 1.0f - i2;
+  }*/
+
+  //float disc1 = smoothstep(0.1f, 0.2f + cubicPulse(0.5f, 0.05f, i1) * (sin(u_time * 5.0f) + 1.0f) / 15.0f, l);
+  float disc1 = smoothstep(0.2f, 0.4f, l);
+  //float disc2 = smoothstep(0.1f, 0.4f + cubicPulse(0.3f, 0.2f, i2) * 0.15f, l);
+  //float disc2 = smoothstep(0.1f, 0.5f + cubicPulse(0.3f, 0.2f, i2) * 0.15f, l);
+
+  /*float disc2 = 0.0f;
+  if(l < 0.9f + cubicPulse(0.5f, 0.2f, i2)) {
+    disc2 = 0.9f;
+  }*/
+  if(l < 0.55f) {
+    return 1.0f - max(disc1, 0.15f);
+  } else {
+    return 1.0f - disc1;
+  }
+  //return 1.0f - max(disc1, 0.15f);
+}
+
+void main() {
+  float contentHeight = 2.0f;
+
+  float yGradient = (v_position.y / 2.0f) + 0.5f;
+
+  //float yMouseGradient = (u_mousepos.y / 2.0f) + 0.5f;
+  float yMouseGradient = 1.0f;
+
+  vec3 skyColourStart = yMouseGradient * vec3(0.05f, 0.33f, 0.71f) + (1.0f - yMouseGradient) * vec3(0.56f, 0.52f, 0.68f);
+  vec3 skyColourEnd = yMouseGradient * vec3(0.54f, 0.90f, 0.99f) + (1.0f - yMouseGradient) * vec3(0.99f, 0.69f, 0.59f);
+  vec3 skyColour = yGradient * skyColourStart + (1.0f - yGradient) * skyColourEnd;
+
+  vec3 cloudColourStart = vec3(1, 1, 1);
+  vec3 cloudColourEnd = vec3(0.8f, 0.8f, 0.8f);
+  vec3 cloudColour = yMouseGradient * cloudColourStart + yMouseGradient * cloudColourEnd;
+
+  vec2 uv = vec2(v_position.x * (u_resolution.x / u_resolution.y), v_position.y);
+  vec2 uv1 = vec2(uv.x, uv.y - (contentHeight - 1.0f) * u_scroll_pct * 0.5f);
+  uv1.x += u_time / 2.0f;
+  float n1_1 = texture(u_image0, uv1 / 2.0f).r;
+  float n1_2 = max(texture(u_image1, uv1 / 8.0f).r - 0.1f, 0.0f);
+  float n1 = (n1_1 / 4.0f) * n1_2;
+
+  /*vec2 uv2 = vec2(v_position.x * (u_resolution.x / u_resolution.y), v_position.y - (contentHeight - 1.0f) * u_scroll_pct * 0.4f);
+  uv2.x += u_time / 4.0f;
+  float n2_1 = texture(u_image0, uv2 / 2.0f).r;
+  float n2_2 = texture(u_image1, uv2 / 5.0f).r;
+  float n2 = (n2_1 / 5.0f) * n2_2;*/
+
+  float n2 = 0.0f;
+
+  float n = n1 + n2;
+
+  fragColor = vec4(n * cloudColour + (1.0f - n) * skyColour, 1.0f);
+
+  vec4 sunsetTint2 = vec4(1, 0.9647058823529412f, 0.803921568627451f, 1.0f);
+  vec4 sunColour = (1.0f - u_scroll_pct) * vec4(1, 1, 1, 1.0f) + u_scroll_pct * sunsetTint2;
+
+  float sun = sunDisc(uv, vec2(0, 0.975f) + vec2(0, -1.0f) * u_scroll_pct);
+  fragColor = (1.0f - sun) * fragColor + sunColour * sun;
+}

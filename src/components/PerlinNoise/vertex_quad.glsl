@@ -1,5 +1,3 @@
-#version 300 es
-
 precision mediump float;
 
 attribute vec2 a_quad;

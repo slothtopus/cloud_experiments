@@ -173,6 +173,7 @@ onUnmounted(() => {
     <p>Mouse: {{ normalisedMouseX.toFixed(2) }}, {{ normalisedMouseY.toFixed(2) }}</p>
     <p>Dragged: {{ draggedMouseX.toFixed(2) }}, {{ draggedMouseY.toFixed(2) }}</p>
   </div>
+  <slot></slot>
 </template>
 
 <style scoped>
